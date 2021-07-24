@@ -18,7 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type WorkerClient interface {
-	Start(ctx context.Context, in *Name, opts ...grpc.CallOption) (*JobID, error)
+	Start(ctx context.Context, in *Cmd, opts ...grpc.CallOption) (*JobID, error)
 	GetStatus(ctx context.Context, in *JobID, opts ...grpc.CallOption) (*Status, error)
 	GetJobIDs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*JobIDList, error)
 	GetResult(ctx context.Context, in *JobID, opts ...grpc.CallOption) (*Result, error)
@@ -33,7 +33,7 @@ func NewWorkerClient(cc grpc.ClientConnInterface) WorkerClient {
 	return &workerClient{cc}
 }
 
-func (c *workerClient) Start(ctx context.Context, in *Name, opts ...grpc.CallOption) (*JobID, error) {
+func (c *workerClient) Start(ctx context.Context, in *Cmd, opts ...grpc.CallOption) (*JobID, error) {
 	out := new(JobID)
 	err := c.cc.Invoke(ctx, "/protojob.Worker/Start", in, out, opts...)
 	if err != nil {
@@ -105,7 +105,7 @@ func (x *workerStreamOutputClient) Recv() (*Output, error) {
 // All implementations must embed UnimplementedWorkerServer
 // for forward compatibility
 type WorkerServer interface {
-	Start(context.Context, *Name) (*JobID, error)
+	Start(context.Context, *Cmd) (*JobID, error)
 	GetStatus(context.Context, *JobID) (*Status, error)
 	GetJobIDs(context.Context, *Empty) (*JobIDList, error)
 	GetResult(context.Context, *JobID) (*Result, error)
@@ -117,7 +117,7 @@ type WorkerServer interface {
 type UnimplementedWorkerServer struct {
 }
 
-func (UnimplementedWorkerServer) Start(context.Context, *Name) (*JobID, error) {
+func (UnimplementedWorkerServer) Start(context.Context, *Cmd) (*JobID, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Start not implemented")
 }
 func (UnimplementedWorkerServer) GetStatus(context.Context, *JobID) (*Status, error) {
@@ -146,7 +146,7 @@ func RegisterWorkerServer(s grpc.ServiceRegistrar, srv WorkerServer) {
 }
 
 func _Worker_Start_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Name)
+	in := new(Cmd)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func _Worker_Start_Handler(srv interface{}, ctx context.Context, dec func(interf
 		FullMethod: "/protojob.Worker/Start",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WorkerServer).Start(ctx, req.(*Name))
+		return srv.(WorkerServer).Start(ctx, req.(*Cmd))
 	}
 	return interceptor(ctx, in, info, handler)
 }

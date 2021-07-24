@@ -3,7 +3,7 @@ option go_package = "github.com/milaniez/teleportselftest/protojob";
 package protojob;
 
 service Worker {
-  rpc Start(Name) returns (JobID) {}
+  rpc Start(Cmd) returns (JobID) {}
   rpc GetStatus(JobID) returns (Status) {}
   rpc GetJobIDs(Empty) returns (JobIDList) {}
   rpc GetResult(JobID) returns (Result) {}
@@ -21,8 +21,9 @@ message JobIDList {
   repeated uint64 id = 1;
 }
 
-message Name {
+message Cmd {
   string name = 1;
+  repeated string args = 2;
 }
 
 message Status {
