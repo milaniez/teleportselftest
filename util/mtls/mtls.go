@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func GetTLSConf(certFile, keyFile, caDir string, isServer bool) (credentials.TransportCredentials, error) {
+func GetTLSCreds(certFile, keyFile, caDir string, isServer bool) (credentials.TransportCredentials, error) {
 	if !strings.HasSuffix(caDir, "/") {
 		caDir += "/"
 	}
