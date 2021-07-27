@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
@@ -31,7 +30,7 @@ func GetCertSerialFromCtx(ctx context.Context) (string, error) {
 		return "", errors.New("issue getting client peer")
 	}
 	tlsInfo := p.AuthInfo.(credentials.TLSInfo)
-	return fmt.Sprintf("%v", *tlsInfo.State.VerifiedChains[0][0].SerialNumber), nil
+	return fmt.Sprintf("%v", tlsInfo.State.VerifiedChains[0][0].SerialNumber.Text(16)), nil
 }
 
 func (w WorkerServer) Start(ctx context.Context, cmd *protojob.Cmd) (*protojob.JobID, error) {
@@ -125,6 +124,9 @@ func main() {
 		)
 	)
 	flag.Parse()
+	if !strings.HasSuffix(*caDir, "/") {
+		*caDir += "/"
+	}
 	log.SetFlags(log.Llongfile | log.LstdFlags)
 	rand.Seed(time.Now().UTC().UnixNano())
 	serverCert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
@@ -135,7 +137,7 @@ func main() {
 		log.Fatalf("failed to load certificate pair: %v: ", err)
 	}
 	caCertPool := x509.NewCertPool()
-	caCertSerials := make(map[string]bool)
+	caCertPoolMemCnt := 0
 	caDirFiles, err := ioutil.ReadDir(*caDir)
 	if err != nil {
 		log.Fatal(err)
@@ -149,16 +151,13 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		block, _ := pem.Decode(caFile)
-		if caCert, err := x509.ParseCertificate(block.Bytes); err != nil {
-			log.Printf("Warning: Certificate %v not read: %v\n", caFilePath, err)
+		if !caCertPool.AppendCertsFromPEM(caFile) {
+			log.Printf("Warning: Certificate %v not added.\n", caFilePath)
 		} else {
-			serial := fmt.Sprintf("%v", *caCert.SerialNumber)
-			caCertPool.AddCert(caCert)
-			caCertSerials[serial] = true
+			caCertPoolMemCnt++
 		}
 	}
-	if len(caCertSerials) == 0 {
+	if caCertPoolMemCnt == 0 {
 		log.Fatal(errors.New("no CA certificates"))
 	}
 	listener, err := net.Listen("tcp", *addr)
@@ -173,10 +172,7 @@ func main() {
 				if len(chain) > 2 || len(chain) == 0 {
 					continue
 				}
-				serial := fmt.Sprintf("%v", *chain[0].SerialNumber)
-				if _, ok := caCertSerials[serial]; ok {
-					return nil
-				}
+				return nil
 			}
 			return errors.New("invalid certificate chains")
 		},
