@@ -2,21 +2,18 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"flag"
 	"fmt"
 	"github.com/milaniez/teleportselftest/protojob"
+	"github.com/milaniez/teleportselftest/util/mtls"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/reflection"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
-	"strings"
 	"time"
 )
 
@@ -124,61 +121,17 @@ func main() {
 		)
 	)
 	flag.Parse()
-	if !strings.HasSuffix(*caDir, "/") {
-		*caDir += "/"
-	}
 	log.SetFlags(log.Llongfile | log.LstdFlags)
 	rand.Seed(time.Now().UTC().UnixNano())
-	serverCert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
-	if !strings.HasSuffix(*caDir, "/") {
-		*caDir += "/"
-	}
-	if err != nil {
-		log.Fatalf("failed to load certificate pair: %v: ", err)
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPoolMemCnt := 0
-	caDirFiles, err := ioutil.ReadDir(*caDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, entry := range caDirFiles {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".pem") {
-			continue
-		}
-		caFilePath := *caDir + entry.Name()
-		caFile, err := ioutil.ReadFile(caFilePath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if !caCertPool.AppendCertsFromPEM(caFile) {
-			log.Printf("Warning: Certificate %v not added.\n", caFilePath)
-		} else {
-			caCertPoolMemCnt++
-		}
-	}
-	if caCertPoolMemCnt == 0 {
-		log.Fatal(errors.New("no CA certificates"))
-	}
 	listener, err := net.Listen("tcp", *addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	tlsConfig := &tls.Config{
-		ClientCAs:  caCertPool,
-		ClientAuth: tls.RequireAndVerifyClientCert,
-		VerifyPeerCertificate: func(_ [][]byte, verifiedChains [][]*x509.Certificate) error {
-			for _, chain := range verifiedChains {
-				if len(chain) > 2 || len(chain) == 0 {
-					continue
-				}
-				return nil
-			}
-			return errors.New("invalid certificate chains")
-		},
-		Certificates: []tls.Certificate{serverCert},
+	creds, err := mtls.GetTLSCreds(*certFile, *keyFile, *caDir, true)
+	if err != nil {
+		log.Fatalf("issue getting creds: %v", err)
 	}
-	serverOpt := grpc.Creds(credentials.NewTLS(tlsConfig))
+	serverOpt := grpc.Creds(creds)
 	grpcServer := grpc.NewServer(serverOpt)
 	protojob.RegisterWorkerServer(grpcServer, WorkerServerNew())
 	reflection.Register(grpcServer)
