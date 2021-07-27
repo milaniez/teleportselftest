@@ -1,0 +1,1 @@
+module "github.com/milaniez/teleportselftest/clientjob"
