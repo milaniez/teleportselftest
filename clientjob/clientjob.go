@@ -5,11 +5,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-type ClientJobHandle struct {
+type Handle struct {
 	conn *grpc.ClientConn
 }
 
-func ClientJobHandleNew(clientCert, ClientKey, caDir, addr string) (*ClientJobHandle, error) {
+func HandleNew(clientCert, ClientKey, caDir, addr string) (*Handle, error) {
 	creds, err := mtls.GetTLSCreds(clientCert, ClientKey, caDir, false)
 	if err != nil {
 		return nil, err
@@ -18,12 +18,12 @@ func ClientJobHandleNew(clientCert, ClientKey, caDir, addr string) (*ClientJobHa
 	if err != nil {
 		return nil, err
 	}
-	return &ClientJobHandle{
+	return &Handle{
 		conn: conn,
 	}, nil
 }
 
-func ClientJobHandleDel(h *ClientJobHandle) error {
+func HandleDel(h *Handle) error {
 	if err := h.conn.Close(); err != nil {
 		return err
 	}
