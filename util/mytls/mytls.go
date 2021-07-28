@@ -1,4 +1,4 @@
-package mtls
+package mytls
 
 import (
 	"crypto/tls"
@@ -25,7 +25,8 @@ func GetTLSCreds(certFile, keyFile, caDir string, isServer bool) (credentials.Tr
 		return nil, err
 	}
 	for _, entry := range caDirFiles {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".pem") {
+		if entry.IsDir() || !(strings.HasSuffix(entry.Name(), ".pem") ||
+			strings.HasSuffix(entry.Name(), ".crt")) {
 			continue
 		}
 		caFilePath := caDir + entry.Name()
@@ -57,6 +58,9 @@ func GetTLSCreds(certFile, keyFile, caDir string, isServer bool) (credentials.Tr
 	}
 	if isServer {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		tlsConfig.ClientCAs = caCertPool
+	} else {
+		tlsConfig.RootCAs = caCertPool
 	}
 	return credentials.NewTLS(tlsConfig), nil
 }

@@ -3,7 +3,7 @@ package clientjob
 import (
 	"context"
 	"github.com/milaniez/teleportselftest/protojob"
-	"github.com/milaniez/teleportselftest/util/mtls"
+	"github.com/milaniez/teleportselftest/util/mytls"
 	"google.golang.org/grpc"
 	"io"
 )
@@ -14,7 +14,7 @@ type Handle struct {
 }
 
 func HandleNew(clientCert, ClientKey, caDir, addr string) (*Handle, error) {
-	creds, err := mtls.GetTLSCreds(clientCert, ClientKey, caDir, false)
+	creds, err := mytls.GetTLSCreds(clientCert, ClientKey, caDir, false)
 	if err != nil {
 		return nil, err
 	}
